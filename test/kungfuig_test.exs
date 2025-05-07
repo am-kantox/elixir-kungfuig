@@ -15,14 +15,14 @@ defmodule Kungfuig.Test do
            callback: {self(), {:info, :updated}}}
       )
 
-    assert_receive {:updated, %{env: %{kungfuig: []}}}, 1_010
+    assert_receive {:updated, %{env: %{kungfuig: []}}}, 1_100
 
     Application.put_env(:kungfuig, :foo, 42)
 
-    assert_receive {:updated, %{env: %{kungfuig: [foo: 42]}}}, 1_010
+    assert_receive {:updated, %{env: %{kungfuig: [foo: 42]}}}, 1_100
 
     System.put_env("KUNGFUIG_FOO", "42")
-    assert_receive {:updated, %{system: %{"KUNGFUIG_FOO" => "42"}}}, 1_010
+    assert_receive {:updated, %{system: %{"KUNGFUIG_FOO" => "42"}}}, 1_100
 
     assert Kungfuig.config(:!, :server_1) == %{
              env: %{kungfuig: [foo: 42]},
@@ -41,7 +41,8 @@ defmodule Kungfuig.Test do
           {Kungfuig.Backends.EnvTransform,
            interval: 100,
            validator: Kungfuig.Validators.EnvTransform,
-           callback: {self(), {:info, :updated}}}
+           callback: {self(), {:info, :updated}},
+           callback: Kungfuig.Test.CallbackAlert}
         ]
       )
 
@@ -76,14 +77,14 @@ defmodule Kungfuig.Test do
            callback: {self(), {:info, :updated}}}
       )
 
-    assert_receive {:updated, %{env: %{kungfuig: []}}}, 1_010
+    assert_receive {:updated, %{env: %{kungfuig: []}}}, 1_100
 
     Application.put_env(:kungfuig, :bar, 24)
 
-    assert_receive {:updated, %{env: %{kungfuig: [bar: 24]}}}, 1_010
+    assert_receive {:updated, %{env: %{kungfuig: [bar: 24]}}}, 1_100
 
     System.put_env("KUNGFUIG_BAR", "24")
-    assert_receive {:updated, %{system: %{"KUNGFUIG_BAR" => "24"}}}, 1_010
+    assert_receive {:updated, %{system: %{"KUNGFUIG_BAR" => "24"}}}, 1_100
 
     assert Kungfuig.config(nil, name) == %{
              env: %{kungfuig: [bar: 24]},

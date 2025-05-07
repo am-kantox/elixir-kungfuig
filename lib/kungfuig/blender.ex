@@ -16,6 +16,6 @@ defmodule Kungfuig.Blender do
     name = Keyword.get(opts, :name)
     state = Map.merge(state, updated)
     unless is_nil(name), do: :persistent_term.put(name, state)
-    {:reply, :ok, %Kungfuig{config | state: state}}
+    {:reply, state, %Kungfuig{config | state: state}}
   end
 end

@@ -28,8 +28,11 @@ defmodule Kungfuig do
 
   Might be an anonymous function, an `{m, f}` tuple accepting a single argument,
   or a process identifier accepting `call`, `cast` or simple message (`:info`.)
+
+  Also, the callback might be an implementation of `Kungfuig.Callback` behaviour.
   """
   @type callback ::
+          module(),
           {module(), atom()}
           | (config() -> :ok)
           | {GenServer.name() | pid(), {:call | :cast | :info, atom()}}
@@ -82,13 +85,15 @@ defmodule Kungfuig do
           |> Keyword.put_new(:interval, 1_000)
           |> Keyword.put_new(:validator, Kungfuig.Validators.Void)
 
-        case Keyword.get_values(opts, :callback) do
-          [{target, {type, name}} | _] when type in [:call, :cast, :info] and is_atom(name) -> :ok
-          [{m, f} | _] when is_atom(m) and is_atom(f) -> :ok
-          [f | _] when is_function(f, 1) -> :ok
-          [] -> :ok
+        opts
+        |> Keyword.get_values(:callback)
+        |> Enum.each(fn
+          {target, {type, name}} when type in [:call, :cast, :info] and is_atom(name) -> :ok
+          {m, f} when is_atom(m) and is_atom(f) -> :ok
+          f when is_function(f, 1) -> :ok
+          module when is_atom(module) -> :ok
           other -> raise "Expected callable, got: " <> inspect(other)
-        end
+        end)
 
         start_options =
           if unquote(anonymous),
@@ -157,6 +162,9 @@ defmodule Kungfuig do
       defp send_callback({m, f}, state), do: apply(m, f, [state])
       defp send_callback(f, state) when is_function(f, 1), do: f.(state)
 
+      defp send_callback(module, state) when is_atom(module),
+        do: module.handle_config_update(state)
+
       @spec smart_validate(validator :: nil | module(), options :: map() | keyword()) ::
               {:ok, keyword()} | {:error, any()}
       defp smart_validate(nil, options), do: {:ok, options}
@@ -182,7 +190,7 @@ defmodule Kungfuig do
           GenServer.call(pid, :state)
 
         other ->
-          raise inspect(other, label: "No Blender configured")
+          raise inspect(other, label: "No blender configured")
       end
 
     case which do

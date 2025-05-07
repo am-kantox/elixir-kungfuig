@@ -15,12 +15,14 @@ defmodule Kungfuig.Supervisor do
     {name, opts} = Keyword.pop(opts, :name)
 
     default_blender =
-      case name do
-        atom when is_atom(atom) -> {Blender, name: Module.concat([name, "Blender"])}
-        _ -> Blender
+      fn ->
+        case name do
+          atom when is_atom(atom) -> {Blender, name: Module.concat([name, "Blender"])}
+          _ -> Blender
+        end
       end
 
-    {blender, opts} = Keyword.pop(opts, :blender, default_blender)
+    {blender, opts} = Keyword.pop_lazy(opts, :blender, default_blender)
 
     {blender, blender_opts} =
       case blender do

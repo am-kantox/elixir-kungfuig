@@ -2,9 +2,10 @@ defmodule Kungfuig.MixProject do
   use Mix.Project
 
   @app :kungfuig
+  @github_project "elixir-kungfuig"
   @name "Kungfuig"
   @version "1.0.0"
-  @owner "kantox"
+  @owner "am-kantox"
   @maintainers ["Aleksei Matiushkin"]
   @private_hex ""
   @licenses ["MIT"]
@@ -77,7 +78,7 @@ defmodule Kungfuig.MixProject do
       maintainers: @maintainers,
       licenses: @licenses,
       links: %{
-        "GitHub" => "https://github.com/#{@owner}/#{@app}",
+        "GitHub" => "https://github.com/#{@owner}/#{@github_project}",
         "Docs" => "https://#{@private_hex}hexdocs.pm/#{@app}"
       }
     ]
@@ -89,7 +90,7 @@ defmodule Kungfuig.MixProject do
       source_ref: "v#{@version}",
       canonical: "http://#{@private_hex}hexdocs.pm/#{@app}",
       logo: "stuff/#{@app}-48x48.png",
-      source_url: "https://github.com/#{@owner}/#{@app}",
+      source_url: "https://github.com/#{@owner}/#{@github_project}",
       assets: "stuff/images",
       extras: ["README.md"],
       groups_for_modules: []

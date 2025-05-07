@@ -19,10 +19,12 @@ defmodule Kungfuig.Backend do
       @behaviour Kungfuig.Backend
 
       {key, opts} =
-        Keyword.pop(
+        Keyword.pop_lazy(
           opts,
           :key,
-          __MODULE__ |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom()
+          fn ->
+            __MODULE__ |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom()
+          end
         )
 
       {report, opts} = Keyword.pop(opts, :report, :none)

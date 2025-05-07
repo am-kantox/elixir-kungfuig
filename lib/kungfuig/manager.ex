@@ -2,7 +2,7 @@ defmodule Kungfuig.Manager do
   @moduledoc false
 
   @type option ::
-          {:start_options, [DynamicSupervisor.option()]}
+          {:start_options, [Supervisor.option()]}
           | {:init_options, [DynamicSupervisor.init_option()]}
           | {:children, [Supervisor.child_spec() | {module(), term()} | module()]}
 
