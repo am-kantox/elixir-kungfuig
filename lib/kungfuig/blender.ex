@@ -3,7 +3,7 @@ defmodule Kungfuig.Blender do
 
   use Kungfuig, imminent: true, interval: 1_000, validator: Kungfuig.Validators.Void
 
-  @spec state(GenServer.name()) :: Kungfuig.t()
+  @spec state(GenServer.name()) :: Kungfuig.config()
   def state(name \\ __MODULE__),
     do: :persistent_term.get(name, nil) || GenServer.call(name, :state)
 

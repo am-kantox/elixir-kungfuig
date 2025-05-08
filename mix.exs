@@ -45,6 +45,7 @@ defmodule Kungfuig.MixProject do
       # dev / test
       {:credo, "~> 1.0", only: [:dev, :ci]},
       {:dialyxir, "~> 1.0", only: [:dev, :test, :ci], runtime: false},
+      {:doctest_formatter, "~> 0.2", runtime: false},
       {:ex_doc, "~> 0.11", only: :dev}
     ]
   end
