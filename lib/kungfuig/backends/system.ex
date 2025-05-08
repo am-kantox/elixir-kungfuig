@@ -3,6 +3,8 @@ defmodule Kungfuig.Backends.System do
 
   use Kungfuig.Backend
 
+  @prefix Application.compile_env(:kungfuig, :system_env_prefix, "KUNGFUIG_")
+
   @impl Kungfuig.Backend
   def get(meta) do
     {:ok,
@@ -12,6 +14,6 @@ defmodule Kungfuig.Backends.System do
   end
 
   defp get_kungfuig_env do
-    for {k, _} <- System.get_env(), String.starts_with?(k, "KUNGFUIG_"), do: k
+    for {k, _} <- System.get_env(), String.starts_with?(k, @prefix), do: k
   end
 end

@@ -6,50 +6,42 @@ defmodule Kungfuig.Supervisor do
   alias Kungfuig.{Backends, Blender, Manager}
 
   def start_link(opts \\ []) do
-    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
+    {name, opts} = Keyword.pop(opts, :name, Kungfuig)
     Supervisor.start_link(__MODULE__, Keyword.put(opts, :name, name), name: name)
   end
 
   @impl true
   def init(opts) do
-    {name, opts} = Keyword.pop(opts, :name)
+    {name, opts} = Keyword.pop!(opts, :name)
+    {callbacks, opts} = Keyword.split(opts, [:callback])
+    {blender, opts} = Keyword.pop(opts, :blender, Blender)
 
-    default_blender =
-      fn ->
-        case name do
-          atom when is_atom(atom) -> {Blender, name: Module.concat([name, "Blender"])}
-          _ -> Blender
-        end
-      end
-
-    {blender, opts} = Keyword.pop_lazy(opts, :blender, default_blender)
+    blender_name = Module.concat([name, "Blender"])
 
     {blender, blender_opts} =
       case blender do
-        module when is_atom(module) -> {module, []}
-        {module, opts} -> {module, opts}
+        module when is_atom(module) -> {module, [name: blender_name]}
+        {module, opts} -> {module, Keyword.put_new(opts, :name, blender_name)}
       end
 
-    blender_name = Keyword.get(blender_opts, :name, blender)
-
-    manager_name =
-      if is_atom(blender_name), do: Module.concat([blender_name, "Manager"]), else: Manager
+    blender_name = Keyword.fetch!(blender_opts, :name)
 
     {workers, opts} =
-      Keyword.pop(
+      Keyword.pop_lazy(
         opts,
         :workers,
-        Application.get_env(:kungfuig, :backends, [Backends.Env, Backends.System])
+        fn -> Application.get_env(:kungfuig, :backends, [Backends.Env, Backends.System]) end
       )
+
+    callbacks = [{:callback, {blender_name, {:call, :updated}}} | callbacks]
 
     workers =
       Enum.map(workers, fn
-        module when is_atom(module) ->
-          {module, callback: {blender_name, {:call, :updated}}}
-
-        {module, opts} ->
-          {module, [{:callback, {blender_name, {:call, :updated}}} | opts]}
+        module when is_atom(module) -> {module, callbacks}
+        {module, opts} -> {module, callbacks ++ opts}
       end)
+
+    manager_name = Module.concat([blender_name, "Manager"])
 
     {:ok, pid} =
       Task.start_link(fn ->

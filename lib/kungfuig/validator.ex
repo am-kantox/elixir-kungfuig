@@ -4,6 +4,19 @@ defmodule Kungfuig.Validator do
 
   Default implementation is
     [`NimbleOptions`](https://github.com/dashbitco/nimble_options).
+
+  ### Example
+
+  ```elixir
+  defmodule TemperatureValidator do
+    @moduledoc false
+
+    use Kungfuig.Validator, schema: [
+      city: [type: :string, required: true],
+      temperature: [type: :integer, required: false]
+    ]
+  end
+  ```
   """
 
   @doc """

@@ -1,5 +1,31 @@
 defmodule Kungfuig.Backend do
-  @moduledoc "The scaffold for the backend watching the external config source."
+  @moduledoc """
+
+  The scaffold for the backend watching the external config source.
+
+  ### Example
+
+  ```elixir
+  defmodule Kungfuig.Backends.EnvTransform do
+    @moduledoc false
+
+    use Kungfuig.Backend, report: :logger, imminent: true
+
+    @impl Kungfuig.Backend
+    def get(meta) do
+      {:ok,
+       meta
+       |> Keyword.get(:for, [:kungfuig])
+       |> Enum.reduce(%{}, &Map.put(&2, &1, Application.get_all_env(&1)))}
+    end
+
+    @impl Kungfuig.Backend
+    def transform(%{kungfuig: env}) do
+      {:ok, for({k, v} <- env, {_, value} <- v, do: {k, value})}
+    end
+  end
+  ```
+  """
 
   @doc "The key this particular config would be stored under, defaults to module name"
   @callback key :: atom()
@@ -12,6 +38,8 @@ defmodule Kungfuig.Backend do
 
   @doc "The implementation of error reporting"
   @callback report(any()) :: :ok
+
+  @optional_callbacks key: 0, transform: 1, report: 1
 
   @doc false
   defmacro __using__(opts \\ []) do

@@ -5,8 +5,8 @@ defmodule Kungfuig.Test do
 
   test "custom target" do
     {:ok, pid} =
-      Kungfuig.Supervisor.start_link(
-        name: :server_1,
+      Kungfuig.start_link(
+        name: KF1,
         blender:
           {Kungfuig.Blender,
            name: Server1Blender,
@@ -24,7 +24,7 @@ defmodule Kungfuig.Test do
     System.put_env("KUNGFUIG_FOO", "42")
     assert_receive {:updated, %{system: %{"KUNGFUIG_FOO" => "42"}}}, 1_100
 
-    assert Kungfuig.config(:!, :server_1) == %{
+    assert Kungfuig.config(:!, KF1) == %{
              env: %{kungfuig: [foo: 42]},
              system: %{"KUNGFUIG_FOO" => "42"}
            }
@@ -36,7 +36,7 @@ defmodule Kungfuig.Test do
 
   test "transform/1" do
     {:ok, pid} =
-      Kungfuig.Supervisor.start_link(
+      Kungfuig.start_link(
         workers: [
           {Kungfuig.Backends.EnvTransform,
            interval: 100,
@@ -64,12 +64,9 @@ defmodule Kungfuig.Test do
   end
 
   test "custom target with via registered name" do
-    {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
-    name = {:via, Registry, {Registry.ViaTest, "server_2"}}
-
     {:ok, pid} =
-      Kungfuig.Supervisor.start_link(
-        name: name,
+      Kungfuig.start_link(
+        name: KF2,
         blender:
           {Kungfuig.Blender,
            interval: 100,
@@ -86,7 +83,7 @@ defmodule Kungfuig.Test do
     System.put_env("KUNGFUIG_BAR", "24")
     assert_receive {:updated, %{system: %{"KUNGFUIG_BAR" => "24"}}}, 1_100
 
-    assert Kungfuig.config(nil, name) == %{
+    assert Kungfuig.config(nil, KF2) == %{
              env: %{kungfuig: [bar: 24]},
              system: %{"KUNGFUIG_BAR" => "24"}
            }
@@ -94,6 +91,5 @@ defmodule Kungfuig.Test do
     Application.delete_env(:kungfuig, :bar)
     System.delete_env("KUNGFUIG_BAR")
     Supervisor.stop(pid)
-    Registry.unregister(Registry.ViaTest, "server_2")
   end
 end

@@ -91,7 +91,7 @@ defmodule Kungfuig.MixProject do
       canonical: "http://#{@private_hex}hexdocs.pm/#{@app}",
       logo: "stuff/#{@app}-48x48.png",
       source_url: "https://github.com/#{@owner}/#{@github_project}",
-      assets: "stuff/images",
+      assets: %{"stuff/images" => "assets"},
       extras: ["README.md"],
       groups_for_modules: []
     ]

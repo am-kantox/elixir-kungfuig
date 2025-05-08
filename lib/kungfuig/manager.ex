@@ -18,7 +18,7 @@ defmodule Kungfuig.Manager do
         &Keyword.put_new(&1, :name, __MODULE__)
       )
 
-    {start_options, opts} = Keyword.pop(opts, :start_options, [])
+    {start_options, opts} = Keyword.pop!(opts, :start_options)
     DynamicSupervisor.start_link(__MODULE__, opts, start_options)
   end
 
@@ -32,7 +32,7 @@ defmodule Kungfuig.Manager do
       |> Keyword.put_new(:strategy, :one_for_one)
       |> DynamicSupervisor.init()
 
-    if is_pid(post_mortem), do: Process.send(post_mortem, :ready, [])
+    if is_pid(post_mortem), do: send(post_mortem, :ready)
 
     {:ok, sup_flags}
   end

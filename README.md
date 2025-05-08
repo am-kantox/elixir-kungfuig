@@ -14,7 +14,7 @@ It provides backends for `env` and `system` and supports custom backends.
 ```elixir
 def deps do
   [
-    {:kungfuig, "~> 0.1"}
+    {:kungfuig, "~> 1.0"}
   ]
 end
 ```
@@ -29,7 +29,7 @@ Here is the example of backend implementation for the config read from external 
 defmodule MyApp.Kungfuig.MySQL do
   @moduledoc false
 
-  use Kungfuig.Backend
+  use Kungfuig.Backend, interval: 300_000 # 5 minutes
 
   @impl Kungfuig.Backend
   def get(_meta) do
@@ -92,7 +92,7 @@ end
 - **`1.0.0`** — modern Elixir v1.16
 - **`0.4.4`** — fix a bug with hardcoded names (`Supervisor` and `Blender`)
 - **`0.4.2`** — allow `imminent: true` option to `Kungfuig.Backend`
-- **`0.4.0`** — allow named `Kungfuig.Supervisor` (thanks @vbroskas)
+- **`0.4.0`** — allow named `Kungfuig` instances (thanks @vbroskas)
 - **`0.3.0`** — allow validation through `NimbleOptions` (per backend and global)
 - **`0.2.0`** — scaffold for backends + several callbacks (and the automatic one for `Blender`)
 

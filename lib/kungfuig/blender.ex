@@ -1,7 +1,7 @@
 defmodule Kungfuig.Blender do
   @moduledoc false
 
-  use Kungfuig, imminent: true
+  use Kungfuig, imminent: true, interval: 1_000, validator: Kungfuig.Validators.Void
 
   @spec state(GenServer.name()) :: Kungfuig.t()
   def state(name \\ __MODULE__),
@@ -16,6 +16,6 @@ defmodule Kungfuig.Blender do
     name = Keyword.get(opts, :name)
     state = Map.merge(state, updated)
     unless is_nil(name), do: :persistent_term.put(name, state)
-    {:reply, state, %Kungfuig{config | state: state}}
+    {:reply, :ok, %Kungfuig{config | state: state}}
   end
 end
