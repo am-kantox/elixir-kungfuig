@@ -57,6 +57,7 @@ defmodule Kungfuig do
   """
   @type callback ::
           module()
+          | pid()
           | {module(), atom()}
           | (config() -> :ok)
           | {GenServer.name() | pid(), {:call | :cast | :info, atom()}}
