@@ -4,7 +4,7 @@ defmodule Kungfuig.MixProject do
   @app :kungfuig
   @github_project "elixir-kungfuig"
   @name "Kungfuig"
-  @version "1.0.0"
+  @version "1.0.1"
   @owner "am-kantox"
   @maintainers ["Aleksei Matiushkin"]
   @private_hex ""
@@ -93,7 +93,14 @@ defmodule Kungfuig.MixProject do
       source_url: "https://github.com/#{@owner}/#{@github_project}",
       assets: %{"stuff/images" => "assets"},
       extras: ["README.md"],
-      groups_for_modules: []
+      groups_for_modules: [
+        # Kungfuig,
+        Extending: [
+          Kungfuig.Backend,
+          Kungfuig.Callback,
+          Kungfuig.Validator
+        ]
+      ]
     ]
   end
 
