@@ -7,6 +7,30 @@ defmodule Kungfuig.Supervisor do
 
   def start_link(opts \\ []) do
     {name, opts} = Keyword.pop(opts, :name, Kungfuig)
+
+    updater = fn
+      {:backend, domain} ->
+        module = Module.concat([domain, name])
+
+        if Code.ensure_loaded?(module) do
+          module
+        else
+          key = name |> Macro.underscore() |> String.to_atom()
+          Kungfuig.Backend.create(module, domain, key)
+        end
+
+      constructor when is_function(constructor, 1) ->
+        constructor.(name)
+
+      other ->
+        other
+    end
+
+    opts =
+      opts
+      |> Keyword.put_new(:workers, standard_workers())
+      |> Keyword.update!(:workers, &Enum.map(&1, updater))
+
     Supervisor.start_link(__MODULE__, Keyword.put(opts, :name, name), name: name)
   end
 
@@ -15,30 +39,35 @@ defmodule Kungfuig.Supervisor do
     {name, opts} = Keyword.pop!(opts, :name)
     {callbacks, opts} = Keyword.split(opts, [:callback])
     {blender, opts} = Keyword.pop(opts, :blender, Blender)
+    {start_options, opts} = Keyword.pop(opts, :start_options, [])
+    {validator, opts} = Keyword.pop(opts, :validator, Kungfuig.Validators.Void)
 
     blender_name = Module.concat([name, "Blender"])
 
     {blender, blender_opts} =
       case blender do
-        module when is_atom(module) -> {module, [name: blender_name]}
-        {module, opts} -> {module, Keyword.put_new(opts, :name, blender_name)}
+        module when is_atom(module) ->
+          {module, [start_options: start_options, name: blender_name]}
+
+        {module, opts} ->
+          opts =
+            opts
+            |> Keyword.put_new(:name, blender_name)
+            |> Keyword.update(:start_options, start_options, &Keyword.merge(start_options, &1))
+
+          {module, opts}
       end
 
     blender_name = Keyword.fetch!(blender_opts, :name)
 
-    {workers, opts} =
-      Keyword.pop_lazy(
-        opts,
-        :workers,
-        fn -> Application.get_env(:kungfuig, :backends, [Backends.Env, Backends.System]) end
-      )
+    {workers, opts} = Keyword.pop!(opts, :workers)
 
     callbacks = [{:callback, {blender_name, {:call, :updated}}} | callbacks]
 
     workers =
       Enum.map(workers, fn
-        module when is_atom(module) -> {module, callbacks}
-        {module, opts} -> {module, callbacks ++ opts}
+        module when is_atom(module) -> {module, [{:validator, validator} | callbacks]}
+        {module, opts} -> {module, callbacks ++ Keyword.put_new(opts, :validator, validator)}
       end)
 
     manager_name = Module.concat([blender_name, "Manager"])
@@ -56,5 +85,12 @@ defmodule Kungfuig.Supervisor do
     ]
 
     Supervisor.init(children, Keyword.put_new(opts, :strategy, :one_for_one))
+  end
+
+  defp standard_workers do
+    Application.get_env(:kungfuig, :backends, [
+      {:backend, Backends.Env},
+      {:backend, Backends.System}
+    ])
   end
 end

@@ -238,9 +238,8 @@ defmodule Kungfuig do
 
   * `:imminent` - When `true`, performs configuration validation immediately during initialization,
     rather than as a continuation after init returns. Default is `false`.
-    @since v0.4.2
 
-  * `:anonymous` - When `true`, the GenServer is not registered under a name.
+  * `:anonymous` - When `true`, the `GenServer` is not registered under a name.
     Default is `false`.
 
   * `:start_options` - Options passed to `GenServer.start_link/3`.
@@ -250,7 +249,7 @@ defmodule Kungfuig do
     @since v0.3.0
 
   * `:workers` - A list of backend specifications, each either a module name or a 
-    `{module, opts}` tuple.
+    `{module, opts}` tuple. It might also be a function of arity 
   """
   # The name to register the Kungfuig instance under
   @type option ::
@@ -296,23 +295,15 @@ defmodule Kungfuig do
           |> Keyword.put_new(:interval, 1_000)
           |> Keyword.put_new(:validator, Kungfuig.Validators.Void)
 
-        behaviour_checker =
-          fn module ->
-            # if function_exported?(module, :handle_config_update, 1), do: [], else: [module]
-            []
-          end
+        {{:ok, opts}, {:error, errors}} = Kungfuig.fix_callbacks(opts)
 
-        opts
-        |> Keyword.get_values(:callback)
-        |> Enum.flat_map(fn
-          {target, {type, name}} when type in [:call, :cast, :info] and is_atom(name) -> []
-          {m, f} when is_atom(m) and is_atom(f) -> []
-          f when is_function(f, 1) -> []
-          pid when is_pid(pid) -> []
-          module when is_atom(module) -> behaviour_checker.(module)
-          other -> [other]
-        end)
-        |> tap(&if &1 != [], do: raise("Expected callable(s), got: " <> inspect(&1)))
+        if [] != errors do
+          require Logger
+
+          Logger.warning(
+            "Expected callable(s) in " <> inspect(__MODULE__) <> ", got: " <> inspect(errors)
+          )
+        end
 
         start_options =
           if unquote(anonymous),
@@ -352,12 +343,15 @@ defmodule Kungfuig do
           ) do
         state =
           with new_state <- update_config(config),
-               {:ok, new_state} <- smart_validate(opts[:validator], new_state) do
-            if previous != new_state,
-              do: opts |> Keyword.get_values(:callback) |> send_callback(new_state)
-
+               false <- state == new_state,
+               {:ok, new_state} <- smart_validate(opts[:validator], new_state),
+               false <- state == new_state do
+            _oks_errs = opts |> Keyword.get_values(:callback) |> send_callback(new_state)
             new_state
           else
+            true ->
+              state
+
             {:error, error} ->
               report_error(error)
               state
@@ -372,24 +366,33 @@ defmodule Kungfuig do
       def handle_call(:state, _from, %Kungfuig{} = state),
         do: {:reply, state, state}
 
-      defp send_callback(nil, _state), do: :ok
+      defp send_callback(nil, _state), do: {:error, :invalid_recipient}
+      defp send_callback([], _state), do: []
 
       defp send_callback(many, state) when is_list(many),
-        do: Enum.each(many, &send_callback(&1, state))
+        do: Enum.map(many, &send_callback(&1, state))
 
-      defp send_callback(pid, state) when is_pid(pid),
+      defp send_callback(one, state) do
+        {:ok, do_send_callback(one, state)}
+      rescue
+        error ->
+          report_error(error)
+          {:error, error}
+      end
+
+      defp do_send_callback(pid, state) when is_pid(pid),
         do: send(pid, {:kungfuig_update, state})
 
-      defp send_callback({target, {:info, m}}, state),
+      defp do_send_callback({target, {:info, m}}, state),
         do: send(target, {m, state})
 
-      defp send_callback({target, {type, m}}, state),
+      defp do_send_callback({target, {type, m}}, state),
         do: apply(GenServer, type, [target, {m, state}])
 
-      defp send_callback({m, f}, state), do: apply(m, f, [state])
-      defp send_callback(f, state) when is_function(f, 1), do: f.(state)
+      defp do_send_callback({m, f}, state), do: apply(m, f, [state])
+      defp do_send_callback(f, state) when is_function(f, 1), do: f.(state)
 
-      defp send_callback(module, state) when is_atom(module),
+      defp do_send_callback(module, state) when is_atom(module),
         do: module.handle_config_update(state)
 
       @spec smart_validate(validator :: nil | module(), options :: map() | keyword()) ::
@@ -439,5 +442,42 @@ defmodule Kungfuig do
       which when is_atom(which) -> Map.get(result.state, which, %{})
       which when is_list(which) -> Map.take(result.state, which)
     end
+  end
+
+  @doc false
+  @spec fix_callbacks(opts) :: {{:ok, opts}, {:error, [callback]}}
+        when opts: keyword(), callback: any()
+  def fix_callbacks(opts \\ []) do
+    behaviour_checker =
+      fn module ->
+        Code.ensure_loaded?(module) and function_exported?(module, :handle_config_update, 1)
+      end
+
+    {oks, errs} =
+      Enum.reduce(opts, {[], []}, fn
+        {:callback, {_target, {type, name}}} = cb, {oks, errs}
+        when type in [:call, :cast, :info] and is_atom(name) ->
+          {[cb | oks], errs}
+
+        {:callback, {m, f}} = cb, {oks, errs} when is_atom(m) and is_atom(f) ->
+          {[cb | oks], errs}
+
+        {:callback, f} = cb, {oks, errs} when is_function(f, 1) ->
+          {[cb | oks], errs}
+
+        {:callback, pid} = cb, {oks, errs} when is_pid(pid) ->
+          {[cb | oks], errs}
+
+        {:callback, module} = cb, {oks, errs} when is_atom(module) ->
+          if behaviour_checker.(module), do: {[cb | oks], errs}, else: {oks, [cb | errs]}
+
+        {:callback, _other} = cb, {oks, errs} ->
+          {oks, [cb | errs]}
+
+        other, {oks, errs} ->
+          {[other | oks], errs}
+      end)
+
+    {{:ok, Enum.reverse(oks)}, {:error, Enum.reverse(errs)}}
   end
 end

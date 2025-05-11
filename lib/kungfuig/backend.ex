@@ -33,6 +33,9 @@ defmodule Kungfuig.Backend do
   @doc "The implementation of the call to remote that retrieves the data"
   @callback get([Kungfuig.option()]) :: {:ok, any()} | {:error, any()}
 
+  @doc "The implementation of the call to remote that retrieves the data under a key specified"
+  @callback get([Kungfuig.option()], atom()) :: {:ok, any()} | {:error, any()}
+
   @doc "The transformer that converts the retrieved data to internal representation"
   @callback transform(any()) :: {:ok, any()} | {:error, any()}
 
@@ -70,13 +73,16 @@ defmodule Kungfuig.Backend do
 
           def report(error),
             do:
-              Logger.info(fn ->
+              Logger.warning(fn ->
                 "Failed to retrieve config in #{key()}. Error: #{inspect(error)}."
               end)
 
         _ ->
           def report(_any), do: :ok
       end
+
+      @impl Kungfuig.Backend
+      def get(meta), do: get(meta, :kungfuig)
 
       defoverridable Kungfuig.Backend
 
@@ -104,6 +110,44 @@ defmodule Kungfuig.Backend do
       end
 
       defp report_error(error), do: report(error)
+    end
+  end
+
+  @doc false
+  @spec create(name :: module(), domain :: module(), key :: atom()) :: module()
+  def create(name, domain \\ nil, key) do
+    with {:module, ^name, _binary, _term} <-
+           Module.create(name, content(domain: domain, key: key), Macro.Env.location(__ENV__)),
+         do: name
+  end
+
+  @doc false
+  def content(opts) do
+    quote generated: true, location: :keep, bind_quoted: [opts: opts] do
+      domain = Keyword.get(opts, :domain, :kungfuig)
+
+      {domain, domain_key} =
+        case to_string(domain) do
+          "Elixir." <> name ->
+            {domain,
+             domain |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom()}
+
+          shorty ->
+            {Module.concat([Kungfuig.Backend, Macro.camelize(shorty)]), shorty}
+        end
+
+      @domain domain
+      @domain_key domain_key
+      @report Keyword.get(opts, :report, :logger)
+      @key Keyword.get(opts, :key, :kungfuig)
+
+      use Kungfuig.Backend, key: @domain_key, report: @report
+
+      @impl Kungfuig.Backend
+      def get(meta, key), do: @domain.get(meta, key)
+
+      @impl Kungfuig.Backend
+      def get(meta), do: get(meta, @key)
     end
   end
 end

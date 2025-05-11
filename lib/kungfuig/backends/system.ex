@@ -1,19 +1,22 @@
 defmodule Kungfuig.Backends.System do
   @moduledoc false
 
-  use Kungfuig.Backend
+  use Kungfuig.Backend, report: :logger
 
-  @prefix Application.compile_env(:kungfuig, :system_env_prefix, "KUNGFUIG_")
+  defmacro __using__(opts \\ []) do
+    Kungfuig.Backend.content(opts)
+  end
 
   @impl Kungfuig.Backend
-  def get(meta) do
+  def get(meta, key) do
     {:ok,
      meta
-     |> Keyword.get(:for, get_kungfuig_env())
+     |> Keyword.get(:for, get_kungfuig_env(key))
      |> Enum.reduce(%{}, &Map.put(&2, &1, System.get_env(&1)))}
   end
 
-  defp get_kungfuig_env do
-    for {k, _} <- System.get_env(), String.starts_with?(k, @prefix), do: k
+  defp get_kungfuig_env(key) do
+    key = key |> Atom.to_string() |> String.upcase() |> Kernel.<>("_")
+    for {k, _} <- System.get_env(), String.starts_with?(k, key), do: k
   end
 end
