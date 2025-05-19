@@ -45,18 +45,18 @@ defmodule Kungfuig.Test do
         ]
       )
 
-    assert_receive {:updated, %{env_transform: []}}, 120
+    assert_receive {:updated, %{kungfuig: []}}, 200
 
     Application.put_env(:kungfuig, :foo_transform, %{bar: :baz})
-    assert_receive {:updated, %{env_transform: [foo_transform: :baz]}}, 1_020
-    assert Kungfuig.config() == %{env_transform: [foo_transform: :baz]}
+    assert_receive {:updated, %{kungfuig: [foo_transform: :baz]}}, 1_020
+    assert Kungfuig.config() == %{kungfuig: [foo_transform: :baz]}
 
     assert capture_log([level: :info], fn ->
              Application.put_env(:kungfuig, :foo_transform, %{bar: 42})
-             refute_receive({:updated, %{env_transform: [foo_transform: 42]}}, 120)
+             refute_receive({:updated, %{kungfuig: [foo_transform: 42]}}, 120)
            end) =~ "atom, got: 42"
 
-    assert Kungfuig.config() == %{env_transform: [foo_transform: :baz]}
+    assert Kungfuig.config() == %{kungfuig: [foo_transform: :baz]}
 
     Application.delete_env(:kungfuig, :foo_transform)
     Supervisor.stop(pid)
@@ -203,6 +203,8 @@ defmodule Kungfuig.Test do
           validator: Kungfuig.Test.Validators.ErrorReporting,
           callback: self()
         )
+
+      assert_receive {:kungfuig_update, %{env: %{}}}, 1_100
 
       valid_config = %{
         must_be_positive: 42
@@ -750,6 +752,32 @@ defmodule Kungfuig.Test do
 
       assert worker_pid != new_worker_pid
       assert Process.alive?(new_worker_pid)
+
+      Supervisor.stop(pid)
+    end
+  end
+
+  describe "json kungfuig" do
+    test "custom target with via registered name" do
+      {:ok, pid} =
+        Kungfuig.start_link(
+          name: KfJson,
+          workers: [
+            {Kungfuig.Backends.Json, interval: 100}
+          ],
+          callback: self()
+        )
+
+      assert_receive {:kungfuig_update,
+                      %{
+                        "priv/json" => %{
+                          "file1.json" => %{
+                            "list" => [42, 3.14, "foo"],
+                            "map" => %{"item1" => 42, "item2" => "foo"},
+                            "name" => "file1"
+                          }
+                        }
+                      }}
 
       Supervisor.stop(pid)
     end

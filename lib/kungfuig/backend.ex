@@ -12,10 +12,10 @@ defmodule Kungfuig.Backend do
     use Kungfuig.Backend, report: :logger, imminent: true
 
     @impl Kungfuig.Backend
-    def get(meta) do
+    def get(meta, key) do
       {:ok,
        meta
-       |> Keyword.get(:for, [:kungfuig])
+       |> Keyword.get(:for, [key])
        |> Enum.reduce(%{}, &Map.put(&2, &1, Application.get_all_env(&1)))}
     end
 
@@ -27,14 +27,17 @@ defmodule Kungfuig.Backend do
   ```
   """
 
+  @typedoc "The type for the key withing `Kungfuig`, typically an atom."
+  @type key :: term()
+
   @doc "The key this particular config would be stored under, defaults to module name"
-  @callback key :: atom()
+  @callback key :: key()
 
   @doc "The implementation of the call to remote that retrieves the data"
   @callback get([Kungfuig.option()]) :: {:ok, any()} | {:error, any()}
 
   @doc "The implementation of the call to remote that retrieves the data under a key specified"
-  @callback get([Kungfuig.option()], atom()) :: {:ok, any()} | {:error, any()}
+  @callback get([Kungfuig.option()], key()) :: {:ok, any()} | {:error, any()}
 
   @doc "The transformer that converts the retrieved data to internal representation"
   @callback transform(any()) :: {:ok, any()} | {:error, any()}
@@ -82,7 +85,7 @@ defmodule Kungfuig.Backend do
       end
 
       @impl Kungfuig.Backend
-      def get(meta), do: get(meta, :kungfuig)
+      def get(meta), do: get(meta, unquote(key))
 
       defoverridable Kungfuig.Backend
 
@@ -96,7 +99,7 @@ defmodule Kungfuig.Backend do
           Map.put(state, key(), result)
         else
           {:error, error} ->
-            report(error)
+            if Keyword.get(meta, :report?, true), do: report(error)
             state
         end
       end

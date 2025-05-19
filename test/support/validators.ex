@@ -112,12 +112,12 @@ defmodule Kungfuig.Test.Validators.ErrorReporting do
         required: false,
         keys: [
           test_config: [
-            required: true,
+            required: false,
             type: :map,
             keys: [
               must_be_positive: [
                 type: {:custom, __MODULE__, :custom_validation, []},
-                required: false
+                required: true
               ]
             ]
           ]

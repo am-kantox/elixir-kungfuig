@@ -339,26 +339,32 @@ defmodule Kungfuig do
       @doc false
       def handle_continue(
             :update,
-            %Kungfuig{__meta__: opts, __previous__: previous, state: state} = config
+            %Kungfuig{__meta__: meta, __previous__: previous, state: state} = config
           ) do
-        state =
+        validator = Keyword.get(meta, :validator)
+
+        config =
           with new_state <- update_config(config),
                false <- state == new_state,
-               {:ok, new_state} <- smart_validate(opts[:validator], new_state),
+               {:ok, new_state} <- smart_validate(validator, new_state),
                false <- state == new_state do
-            _oks_errs = opts |> Keyword.get_values(:callback) |> send_callback(new_state)
-            new_state
+            _oks_errs = meta |> Keyword.get_values(:callback) |> send_callback(new_state)
+            %Kungfuig{config | __previous__: state, state: new_state}
           else
             true ->
-              state
+              config
 
             {:error, error} ->
-              report_error(error)
-              state
+              if Keyword.get(meta, :report?, true) do
+                report_error(error)
+                %Kungfuig{config | __meta__: Keyword.put(meta, :report?, false)}
+              else
+                config
+              end
           end
 
-        Process.send_after(self(), :update, opts[:interval])
-        {:noreply, %Kungfuig{config | __previous__: state, state: state}}
+        Process.send_after(self(), :update, Keyword.get(meta, :interval, 5_000))
+        {:noreply, config}
       end
 
       @impl GenServer

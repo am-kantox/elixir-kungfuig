@@ -1,7 +1,7 @@
 defmodule Kungfuig.Backends.EnvTransform do
   @moduledoc false
 
-  use Kungfuig.Backend, report: :logger, imminent: true
+  use Kungfuig.Backend, key: :kungfuig, report: :logger, imminent: true
 
   @impl Kungfuig.Backend
   def get(meta, key) do

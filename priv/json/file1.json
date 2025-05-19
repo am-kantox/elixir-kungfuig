@@ -1,0 +1,8 @@
+{
+  "name": "file1",
+  "list": [ 42, 3.14, "foo" ],
+  "map": {
+    "item1": 42,
+    "item2": "foo"
+  }
+}
