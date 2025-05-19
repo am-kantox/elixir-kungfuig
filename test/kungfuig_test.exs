@@ -763,14 +763,14 @@ defmodule Kungfuig.Test do
         Kungfuig.start_link(
           name: KfJson,
           workers: [
-            {Kungfuig.Backends.Json, interval: 100}
+            {Kungfuig.Backends.Json, interval: 100, for: "priv"}
           ],
           callback: self()
         )
 
       assert_receive {:kungfuig_update,
                       %{
-                        "priv/json" => %{
+                        json: %{
                           "file1.json" => %{
                             "list" => [42, 3.14, "foo"],
                             "map" => %{"item1" => 42, "item2" => "foo"},

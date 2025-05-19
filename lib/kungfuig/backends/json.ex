@@ -2,20 +2,29 @@ defmodule Kungfuig.Backends.Json do
   @moduledoc false
   require Logger
 
-  @key "priv/json"
-  use Kungfuig.Backend, key: @key, report: :logger
+  use Kungfuig.Backend, report: :logger
+
+  @dir "priv"
+
+  defmacro __using__(opts \\ []) do
+    Kungfuig.Backend.content(opts)
+  end
 
   @impl Kungfuig.Backend
-  def get(_meta, key) do
+  def get(meta, key) do
+    key = Path.join(Keyword.get(meta, :for, @dir), to_string(key))
+
     with {:ok, files} <- File.ls(key) do
       files
       |> Enum.flat_map(fn file ->
-        with {:ok, content} <- File.read(Path.join(key, file)),
+        path = Path.join(key, file)
+
+        with {:ok, content} <- File.read(path),
              {:ok, content} <- decode(content) do
           [{file, content}]
         else
           {:error, error} ->
-            Logger.warning("Error reading config ‹#{file}›: " <> inspect(error))
+            Logger.warning("Error reading config ‹#{path}›: " <> inspect(error))
             []
         end
       end)
