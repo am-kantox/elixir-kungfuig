@@ -99,6 +99,7 @@ defmodule Kungfuig.MixProject do
         Extending: [
           Kungfuig.Backend,
           Kungfuig.Callback,
+          Kungfuig.Parser,
           Kungfuig.Validator
         ]
       ]
