@@ -775,9 +775,17 @@ defmodule Kungfuig.Test do
                             "list" => [42, 3.14, "foo"],
                             "map" => %{"item1" => 42, "item2" => "foo"},
                             "name" => "file1"
+                          },
+                          "file2.json" => %{
+                            "list" => [42, 3.14, {:foo, 42}],
+                            "map" => %{"item1" => fun, "item2" => :foo},
+                            "name" => "file1"
                           }
                         }
                       }}
+
+      assert [module: IO, name: :inspect, arity: 1, env: [], type: :external] ==
+               Function.info(fun)
 
       Supervisor.stop(pid)
     end
