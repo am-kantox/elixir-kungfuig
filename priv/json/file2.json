@@ -1,0 +1,8 @@
+{
+  "name": "file1",
+  "list": [ 42, 3.14, {"type": "tuple", "value": [{"type": "atom", "value": "foo"}, 42]} ],
+  "map": {
+    "item1": {"type": "function", "module": "IO", "function": "inspect", "arity": 1},
+    "item2": {"type": "atom", "value": "foo"}
+  }
+}
