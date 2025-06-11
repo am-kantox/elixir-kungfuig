@@ -346,10 +346,11 @@ defmodule Kungfuig do
         config =
           with new_state <- update_config(config),
                false <- state == new_state,
+               false <- new_state in [[], %{}, nil],
                {:ok, new_state} <- smart_validate(validator, new_state),
                false <- state == new_state do
             _oks_errs = meta |> Keyword.get_values(:callback) |> send_callback(new_state)
-            %Kungfuig{config | __previous__: state, state: new_state}
+            %{config | __previous__: state, state: new_state}
           else
             true ->
               config
@@ -357,7 +358,7 @@ defmodule Kungfuig do
             {:error, error} ->
               if Keyword.get(meta, :report?, true) do
                 report_error(error)
-                %Kungfuig{config | __meta__: Keyword.put(meta, :report?, false)}
+                %{config | __meta__: Keyword.put(meta, :report?, false)}
               else
                 config
               end

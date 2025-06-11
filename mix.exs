@@ -4,7 +4,7 @@ defmodule Kungfuig.MixProject do
   @app :kungfuig
   @github_project "elixir-kungfuig"
   @name "Kungfuig"
-  @version "1.1.1"
+  @version "1.2.0"
   @owner "am-kantox"
   @maintainers ["Aleksei Matiushkin"]
   @private_hex ""

@@ -96,7 +96,15 @@ defmodule Kungfuig.Backend do
       def update_config(%Kungfuig{__meta__: meta, state: %{} = state}) do
         with {:ok, result} <- get(meta),
              {:ok, result} <- transform(result) do
-          Map.put(state, key(), result)
+          Map.update(state, key(), result, fn
+            empty when empty in [[], %{}, nil] ->
+              result
+
+            non_empty ->
+              if result in [[], %{}, nil],
+                do: non_empty,
+                else: result
+          end)
         else
           {:error, error} ->
             if Keyword.get(meta, :report?, true), do: report(error)
