@@ -31,6 +31,15 @@ defmodule Kungfuig.Parser do
     )
   end
 
+  def value(%{"type" => "function", "module" => module, "function" => function, "args" => args})
+      when is_list(args) do
+    apply(
+      String.to_atom(fix_module(module)),
+      String.to_atom(function),
+      args
+    )
+  end
+
   def value(%{
         "type" => "existing_function",
         "module" => module,
