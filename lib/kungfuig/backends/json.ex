@@ -45,17 +45,17 @@ defmodule Kungfuig.Backends.Json do
   defp parse(value), do: value
 
   cond do
-    Code.ensure_loaded?(:json) ->
+    match?({:module, _}, Code.ensure_compiled(:json)) ->
       def decode(binary) do
         {:ok, :json.decode(binary)}
       rescue
         e in ErlangError -> {:error, e}
       end
 
-    Code.ensure_loaded?(Jason) ->
+    match?({:module, _}, Code.ensure_compiled(Jason)) ->
       defdelegate decode(binary), to: Jason
 
-    Code.ensure_loaded?(Poison) ->
+    match?({:module, _}, Code.ensure_compiled(Poison)) ->
       defdelegate decode(binary), to: Poison
 
     true ->
